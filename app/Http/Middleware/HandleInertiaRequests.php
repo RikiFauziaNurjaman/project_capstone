@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Item;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,8 +41,17 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'roles' => $request->user()
+                    ? $request->user()->getRoleNames()->values()->all()
+                    : [],
+                'permissions' => $request->user()
+                    ? $request->user()->getAllPermissions()->pluck('name')->values()->all()
+                    : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarStats' => fn (): array => [
+                'itemsCount' => $request->user() ? Item::query()->count() : 0,
+            ],
         ];
     }
 }

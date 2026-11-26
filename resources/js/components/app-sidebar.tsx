@@ -1,11 +1,15 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     Box,
     Building2,
     FileChartColumn,
     LayoutGrid,
+    Ruler,
     Settings,
+    Tags,
+    Truck,
+    Users,
     Wrench,
 } from 'lucide-react';
 import {
@@ -23,7 +27,12 @@ import {
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { index as categoriesIndex } from '@/routes/master/categories';
+import { index as itemsIndex } from '@/routes/master/items';
+import { index as suppliersIndex } from '@/routes/master/suppliers';
+import { index as unitsIndex } from '@/routes/master/units';
 import { edit as editProfile } from '@/routes/profile';
+import { index as usersIndex } from '@/routes/users';
 import type { NavItem } from '@/types';
 
 export type AppSidebarProps = {
@@ -32,6 +41,7 @@ export type AppSidebarProps = {
     companyName?: string;
     companySubtitle?: string;
     navItems?: NavItem[];
+    masterNavItems?: NavItem[];
     footerItems?: NavItem[];
     inventoryCount?: number | string | null;
 };
@@ -54,11 +64,26 @@ export function AppSidebar({
     companyName = 'CV. Multi Karya Sukses',
     companySubtitle = 'Workspace perusahaan',
     navItems,
+    masterNavItems,
     footerItems,
-    inventoryCount = 1248,
+    inventoryCount,
 }: AppSidebarProps) {
+    const { auth, sidebarStats } = usePage().props;
     const { isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
     const { setOpenMobile } = useSidebar();
+
+    const userRoles = auth?.roles ?? [];
+    const userPermissions = auth?.permissions ?? [];
+    const canAccessUsers =
+        userRoles.includes('admin') ||
+        userPermissions.includes('users.view') ||
+        userPermissions.includes('users.manage') ||
+        auth?.user?.role === 'admin';
+
+    const resolvedInventoryCount =
+        inventoryCount !== undefined
+            ? inventoryCount
+            : (sidebarStats?.itemsCount ?? 0);
 
     const workspaceNavItems: NavItem[] = navItems ?? [
         {
@@ -68,33 +93,64 @@ export function AppSidebar({
         },
         {
             title: 'Inventaris',
-            href: '/inventaris',
+            href: itemsIndex(),
             icon: Box,
-            badge: inventoryCount,
+            badge: resolvedInventoryCount,
         },
         {
             title: 'Barang masuk / keluar',
             href: '/barang-masuk-keluar',
             icon: ArrowLeftRight,
+            disabled: true,
         },
         {
             title: 'Proyek & lokasi',
             href: '/proyek-lokasi',
             icon: Building2,
+            disabled: true,
         },
         {
             title: 'Pemeliharaan',
             href: '/pemeliharaan',
             icon: Wrench,
+            disabled: true,
         },
         {
             title: 'Laporan',
             href: '/laporan',
             icon: FileChartColumn,
+            disabled: true,
+        },
+    ];
+
+    const masterDataItems: NavItem[] = masterNavItems ?? [
+        {
+            title: 'Kategori',
+            href: categoriesIndex(),
+            icon: Tags,
+        },
+        {
+            title: 'Satuan',
+            href: unitsIndex(),
+            icon: Ruler,
+        },
+        {
+            title: 'Supplier',
+            href: suppliersIndex(),
+            icon: Truck,
         },
     ];
 
     const bottomNavItems: NavItem[] = footerItems ?? [
+        ...(canAccessUsers
+            ? [
+                  {
+                      title: 'Pengguna & akses',
+                      href: usersIndex(),
+                      icon: Users,
+                  },
+              ]
+            : []),
         {
             title: 'Pengaturan',
             href: editProfile(),
@@ -111,6 +167,12 @@ export function AppSidebar({
 
         if (targetUrl === '/settings/profile') {
             return isCurrentOrParentUrl('/settings');
+        }
+
+        if (targetUrl === '/users') {
+            return (
+                isCurrentOrParentUrl('/users') || isCurrentOrParentUrl('/roles')
+            );
         }
 
         if (targetUrl === toUrl(dashboard())) {
@@ -132,12 +194,13 @@ export function AppSidebar({
                     isActive={active}
                     tooltip={{ children: item.title }}
                     className={cn(
-                        'group/nav h-11 rounded-xl px-3.5 text-[13.5px] transition-colors duration-150',
+                        'group/nav h-10 rounded-xl px-3.5 text-[13.5px] transition-colors duration-150',
                         'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!',
                         active
                             ? 'bg-brand font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:bg-[#e56820] hover:text-white data-[active=true]:bg-brand data-[active=true]:text-white'
                             : 'font-medium text-[#9BA7B8] hover:bg-white/[0.06] hover:text-white',
-                        item.disabled && 'cursor-not-allowed opacity-50',
+                        item.disabled &&
+                            'cursor-not-allowed opacity-45 hover:bg-transparent hover:text-[#9BA7B8]',
                     )}
                 >
                     {item.disabled ? (
@@ -245,11 +308,20 @@ export function AppSidebar({
 
             <SidebarContent className="px-3 py-2 group-data-[collapsible=icon]:px-2">
                 <SidebarGroup className="p-0">
-                    <SidebarGroupLabel className="mb-1.5 h-auto px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-[0.09em] text-[#66758A] uppercase">
+                    <SidebarGroupLabel className="mb-1 h-auto px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-[0.09em] text-[#66758A] uppercase">
                         WORKSPACE
                     </SidebarGroupLabel>
                     <SidebarMenu className="gap-1">
                         {workspaceNavItems.map(renderNavItem)}
+                    </SidebarMenu>
+                </SidebarGroup>
+
+                <SidebarGroup className="mt-3 p-0">
+                    <SidebarGroupLabel className="mb-1 h-auto px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-[0.09em] text-[#66758A] uppercase">
+                        MASTER DATA
+                    </SidebarGroupLabel>
+                    <SidebarMenu className="gap-1">
+                        {masterDataItems.map(renderNavItem)}
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>

@@ -39,6 +39,16 @@ function formatUserRole(role?: string): string {
         return 'Administrator';
     }
 
+    const labels: Record<string, string> = {
+        admin: 'Administrator',
+        gudang: 'Staf Gudang',
+        pimpinan: 'Pimpinan',
+    };
+
+    if (labels[role.toLowerCase()]) {
+        return labels[role.toLowerCase()];
+    }
+
     return role
         .replace(/[_-]+/g, ' ')
         .replace(/\b\w/g, (char) => char.toUpperCase());
@@ -89,7 +99,7 @@ export function AppSidebarHeader({
     };
 
     const userName = auth?.user?.name || 'Admin Gudang';
-    const userRole = formatUserRole(auth?.user?.role);
+    const userRole = formatUserRole(auth?.roles?.[0] ?? auth?.user?.role);
 
     return (
         <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-white px-4 transition-[width,height] ease-linear sm:px-6 dark:bg-[#111824]">
